@@ -135,8 +135,10 @@
     const fmt = n => n.toLocaleString('nl-NL');
 
     async function api(resource, params) {
-      const url = 'https://opendata.rdw.nl/resource/' + resource + '.json?' + new URLSearchParams(params);
-      const res = await fetch(url);
+      const p = new URLSearchParams(params);
+      p.set('_', Date.now()); // voorkomt cache
+      const url = 'https://opendata.rdw.nl/resource/' + resource + '.json?' + p;
+      const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) throw new Error('API fout: ' + res.status);
       return res.json();
     }
