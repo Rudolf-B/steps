@@ -15,7 +15,13 @@
       --yellow: #ffcc00;
       --orange: #ff9900;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       background: var(--bg);
@@ -23,6 +29,7 @@
       min-height: 100vh;
       padding: 1.5rem;
     }
+
     header {
       background: var(--card);
       border-radius: 12px;
@@ -30,8 +37,18 @@
       margin-bottom: 1rem;
       text-align: center;
     }
-    h1 { color: var(--accent); font-size: 1.5rem; margin-bottom: 0.35rem; }
-    .sub { color: var(--muted); font-size: 0.9rem; }
+
+    h1 {
+      color: var(--accent);
+      font-size: 1.5rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .sub {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
     .toolbar {
       display: flex;
       gap: 1rem;
@@ -39,6 +56,7 @@
       margin-bottom: 1rem;
       flex-wrap: wrap;
     }
+
     button {
       background: var(--accent);
       color: white;
@@ -49,20 +67,34 @@
       cursor: pointer;
       font-size: 0.95rem;
     }
-    button:disabled { opacity: 0.6; cursor: wait; }
-    button:hover:not(:disabled) { filter: brightness(1.1); }
-    .status { color: var(--muted); font-size: 0.9rem; }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    button:hover:not(:disabled) {
+      filter: brightness(1.1);
+    }
+
+    .status {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
     .table-wrap {
       background: #0f3460;
       border-radius: 12px;
       overflow: auto;
       margin-bottom: 1rem;
     }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 700px;
+      min-width: 750px;
     }
+
     th {
       background: var(--accent);
       padding: 0.75rem 1rem;
@@ -71,15 +103,29 @@
       position: sticky;
       top: 0;
     }
+
     td {
       padding: 0.65rem 1rem;
       border-bottom: 1px solid rgba(255,255,255,0.08);
       font-size: 0.9rem;
     }
-    tr:hover td { background: rgba(233,69,96,0.15); }
-    .center { text-align: center; }
-    .zero { color: var(--yellow); }
-    .incomplete { color: var(--orange); }
+
+    tr:hover td {
+      background: rgba(233,69,96,0.15);
+    }
+
+    .center {
+      text-align: center;
+    }
+
+    .zero {
+      color: var(--yellow);
+    }
+
+    .incomplete {
+      color: var(--orange);
+    }
+
     .totals {
       background: var(--card);
       border-radius: 12px;
@@ -89,15 +135,23 @@
       font-weight: 700;
       margin-bottom: 0.75rem;
     }
+
     footer {
       text-align: center;
       color: #666;
       font-size: 0.8rem;
     }
-    .loading { text-align: center; padding: 2rem; color: var(--muted); }
+
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+    }
   </style>
 </head>
+
 <body>
+
   <header>
     <h1>🛴 L1-1b Goedgekeurde E-steps</h1>
     <div class="sub" id="subtitle">Data wordt geladen…</div>
@@ -116,34 +170,67 @@
           <th class="center">Typegoedkeuring</th>
           <th class="center">Totaal in NL</th>
           <th class="center">Op naam</th>
-          <th class="center">% op naam</th>
+          <th class="center">Op naam laatste 7 dagen</th>
           <th>Status</th>
         </tr>
       </thead>
+
       <tbody id="tbody">
-        <tr><td colspan="6" class="loading">Laden…</td></tr>
+        <tr>
+          <td colspan="6" class="loading">Laden…</td>
+        </tr>
       </tbody>
     </table>
   </div>
 
   <div class="totals" id="totals">–</div>
+
   <footer>
     Bron: opendata.rdw.nl · Geen API-key nodig · Nieuwe L1-1b goedkeuringen verschijnen automatisch
   </footer>
 
   <script>
+
     const fmt = n => n.toLocaleString('nl-NL');
+
+    // Geeft de datum van 7 dagen geleden terug als YYYYMMDD.
+    // Dit is hetzelfde formaat als datum_tenaamstelling in de RDW-data.
+    function datum7dagenGeleden() {
+      const d = new Date();
+      d.setDate(d.getDate() - 7);
+
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+
+      return '' + y + m + day;
+    }
 
     async function api(resource, params) {
       const p = new URLSearchParams(params);
-      p.set('_', Date.now()); // voorkomt cache
-      const url = 'https://opendata.rdw.nl/resource/' + resource + '.json?' + p;
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) throw new Error('API fout: ' + res.status);
+
+      // Voorkomt dat oude resultaten uit de browsercache worden gebruikt.
+      p.set('_', Date.now());
+
+      const url =
+        'https://opendata.rdw.nl/resource/' +
+        resource +
+        '.json?' +
+        p;
+
+      const res = await fetch(url, {
+        cache: 'no-store'
+      });
+
+      if (!res.ok) {
+        throw new Error('API fout: ' + res.status);
+      }
+
       return res.json();
     }
 
     async function loadData() {
+
       const btn = document.getElementById('btn');
       const status = document.getElementById('status');
       const tbody = document.getElementById('tbody');
@@ -152,76 +239,213 @@
 
       btn.disabled = true;
       status.textContent = 'Bezig met ophalen…';
-      tbody.innerHTML = '<tr><td colspan="6" class="loading">Laden…</td></tr>';
+
+      tbody.innerHTML =
+        '<tr><td colspan="6" class="loading">Laden…</td></tr>';
 
       try {
-        // 1. Alle L1-1b typegoedkeuringen
+
+        // ---------------------------------------------------------
+        // 1. Alle L1-1b typegoedkeuringen ophalen
+        // ---------------------------------------------------------
+
         const tgkList = await api('byxc-wwua', {
           '$select': 'typegoedkeuringsnummer',
           '$where': "voertuigcategorie='L1-1b'",
           '$group': 'typegoedkeuringsnummer',
           '$limit': '100'
         });
+
         const tgkNummers = tgkList
           .map(r => r.typegoedkeuringsnummer)
           .filter(Boolean)
           .sort();
 
-        if (!tgkNummers.length) throw new Error('Geen L1-1b typegoedkeuringen gevonden');
+        if (!tgkNummers.length) {
+          throw new Error(
+            'Geen L1-1b typegoedkeuringen gevonden'
+          );
+        }
 
+        // ---------------------------------------------------------
         // 2. Namen uit TGK-handelsbenaming
-        const inClause = tgkNummers.map(n => "'" + n + "'").join(',');
+        // ---------------------------------------------------------
+
+        const inClause = tgkNummers
+          .map(n => "'" + n + "'")
+          .join(',');
+
         const handels = await api('x5v3-sewk', {
-          '$select': 'typegoedkeuringsnummer,handelsbenamingfabrikant',
-          '$where': 'typegoedkeuringsnummer in(' + inClause + ')',
+          '$select':
+            'typegoedkeuringsnummer,handelsbenamingfabrikant',
+
+          '$where':
+            'typegoedkeuringsnummer in(' +
+            inClause +
+            ')',
+
           '$limit': '200'
         });
+
         const naamUitTgk = {};
+
         for (const h of handels) {
+
           const tgk = h.typegoedkeuringsnummer;
-          const naam = (h.handelsbenamingfabrikant || '').trim();
+          const naam =
+            (h.handelsbenamingfabrikant || '').trim();
+
           if (tgk && naam && !naamUitTgk[tgk]) {
-            naamUitTgk[tgk] = naam === naam.toUpperCase()
-              ? naam.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-              : naam;
+
+            naamUitTgk[tgk] =
+              naam === naam.toUpperCase()
+                ? naam.replace(
+                    /\w\S*/g,
+                    w =>
+                      w.charAt(0).toUpperCase() +
+                      w.slice(1).toLowerCase()
+                  )
+                : naam;
           }
         }
 
-        // 3. Per TGK: aantallen + naam uit kentekenregister
+        // ---------------------------------------------------------
+        // 3. Per typegoedkeuring de registraties ophalen
+        // ---------------------------------------------------------
+
         const data = [];
+
         for (const tgk of tgkNummers) {
+
+          // Alle voertuigen van deze typegoedkeuring
           const rows = await api('m9d7-ebf2', {
-            '$select': 'merk,handelsbenaming,count(*)',
-            '$where': "typegoedkeuringsnummer='" + tgk + "'",
-            '$group': 'merk,handelsbenaming',
-            '$limit': '50'
+
+            '$select':
+              'merk,handelsbenaming,count(*)',
+
+            '$where':
+              "typegoedkeuringsnummer='" +
+              tgk +
+              "'",
+
+            '$group':
+              'merk,handelsbenaming',
+
+            '$limit':
+              '50'
           });
+
+          // Totaal aantal voertuigen dat op naam staat
           const rowsOpnaam = await api('m9d7-ebf2', {
-            '$select': 'count(*)',
-            '$where': "typegoedkeuringsnummer='" + tgk + "' AND datum_tenaamstelling IS NOT NULL",
-            '$limit': '1'
+
+            '$select':
+              'count(*)',
+
+            '$where':
+              "typegoedkeuringsnummer='" +
+              tgk +
+              "' AND datum_tenaamstelling IS NOT NULL",
+
+            '$limit':
+              '1'
           });
 
-          const totaal = rows.reduce((s, r) => s + parseInt(r.count || 0, 10), 0);
-          const opNaam = rowsOpnaam.length ? parseInt(rowsOpnaam[0].count || 0, 10) : 0;
+          const totaal =
+            rows.reduce(
+              (s, r) =>
+                s + parseInt(r.count || 0, 10),
+              0
+            );
 
-          let model, compleet;
+          const opNaam =
+            rowsOpnaam.length
+              ? parseInt(
+                  rowsOpnaam[0].count || 0,
+                  10
+                )
+              : 0;
+
+          // -------------------------------------------------------
+          // Aantal voertuigen waarvan de tenaamstelling
+          // maximaal 7 dagen geleden is.
+          //
+          // RDW-formaat:
+          // YYYYMMDD
+          // -------------------------------------------------------
+
+          const sinds = datum7dagenGeleden();
+
+          const rows7d = await api('m9d7-ebf2', {
+
+            '$select':
+              'count(*)',
+
+            '$where':
+              "typegoedkeuringsnummer='" +
+              tgk +
+              "' AND datum_tenaamstelling IS NOT NULL" +
+              " AND datum_tenaamstelling >= " +
+              sinds,
+
+            '$limit':
+              '1'
+          });
+
+          const opNaam7d =
+            rows7d.length
+              ? parseInt(
+                  rows7d[0].count || 0,
+                  10
+                )
+              : 0;
+
+          // -------------------------------------------------------
+          // Modelnaam bepalen
+          // -------------------------------------------------------
+
+          let model;
+          let compleet;
+
           if (naamUitTgk[tgk]) {
+
             model = naamUitTgk[tgk];
             compleet = true;
+
           } else if (rows.length) {
-            const best = rows.reduce((a, b) =>
-              parseInt(b.count || 0, 10) > parseInt(a.count || 0, 10) ? b : a
-            );
-            const merk = (best.merk || '').trim();
-            const hb = (best.handelsbenaming || '').trim();
-            if (hb && merk && !hb.toUpperCase().includes(merk.toUpperCase())) {
+
+            const best =
+              rows.reduce((a, b) =>
+                parseInt(b.count || 0, 10) >
+                parseInt(a.count || 0, 10)
+                  ? b
+                  : a
+              );
+
+            const merk =
+              (best.merk || '').trim();
+
+            const hb =
+              (best.handelsbenaming || '').trim();
+
+            if (
+              hb &&
+              merk &&
+              !hb
+                .toUpperCase()
+                .includes(merk.toUpperCase())
+            ) {
               model = merk + ' ' + hb;
             } else {
-              model = hb || merk || '(naam onbekend)';
+              model =
+                hb ||
+                merk ||
+                '(naam onbekend)';
             }
+
             compleet = true;
+
           } else {
+
             model = '(naam nog onbekend)';
             compleet = false;
           }
@@ -231,68 +455,162 @@
             tgk,
             totaal,
             opNaam,
-            pct: totaal > 0 ? Math.round(1000 * opNaam / totaal) / 10 : 0,
+            opNaam7d,
             compleet
           });
         }
 
-        data.sort((a, b) => b.totaal - a.totaal || a.tgk.localeCompare(b.tgk));
+        // ---------------------------------------------------------
+        // Sorteren: meeste registraties eerst
+        // ---------------------------------------------------------
 
-        // Render
+        data.sort(
+          (a, b) =>
+            b.totaal - a.totaal ||
+            a.tgk.localeCompare(b.tgk)
+        );
+
+        // ---------------------------------------------------------
+        // Tabel vullen
+        // ---------------------------------------------------------
+
         tbody.innerHTML = '';
-        let totalAll = 0, totalOp = 0;
+
+        let totalAll = 0;
+        let totalOp = 0;
+        let total7d = 0;
+
         for (const row of data) {
-          let status, cls, tTxt, oTxt, pTxt;
+
+          let status;
+          let cls;
+          let tTxt;
+          let oTxt;
+          let d7Txt;
+
           if (!row.compleet) {
+
             status = '⏳ Naam nog niet bekend';
             cls = 'incomplete';
-            tTxt = oTxt = pTxt = '–';
+
+            tTxt = '–';
+            oTxt = '–';
+            d7Txt = '–';
+
           } else if (row.totaal === 0) {
+
             status = '⚠ Nog geen registraties';
             cls = 'zero';
-            tTxt = oTxt = '0';
-            pTxt = '–';
+
+            tTxt = '0';
+            oTxt = '0';
+            d7Txt = '0';
+
           } else {
+
             status = '✓ Actief';
             cls = '';
+
             tTxt = fmt(row.totaal);
             oTxt = fmt(row.opNaam);
-            pTxt = row.pct + ' %';
+            d7Txt = fmt(row.opNaam7d);
           }
+
           totalAll += row.totaal;
           totalOp += row.opNaam;
+          total7d += row.opNaam7d;
 
           const tr = document.createElement('tr');
-          if (cls) tr.className = cls;
+
+          if (cls) {
+            tr.className = cls;
+          }
+
           tr.innerHTML =
-            '<td>' + row.model + '</td>' +
-            '<td class="center">' + row.tgk + '</td>' +
-            '<td class="center">' + tTxt + '</td>' +
-            '<td class="center">' + oTxt + '</td>' +
-            '<td class="center">' + pTxt + '</td>' +
-            '<td>' + status + '</td>';
+            '<td>' +
+              row.model +
+            '</td>' +
+
+            '<td class="center">' +
+              row.tgk +
+            '</td>' +
+
+            '<td class="center">' +
+              tTxt +
+            '</td>' +
+
+            '<td class="center">' +
+              oTxt +
+            '</td>' +
+
+            '<td class="center">' +
+              d7Txt +
+            '</td>' +
+
+            '<td>' +
+              status +
+            '</td>';
+
           tbody.appendChild(tr);
         }
 
-        const pctAll = totalAll > 0 ? Math.round(1000 * totalOp / totalAll) / 10 : 0;
+        // ---------------------------------------------------------
+        // Totalen
+        // ---------------------------------------------------------
+
         totals.textContent =
-          data.length + ' L1-1b typegoedkeuringen  •  ' +
-          'Geregistreerd: ' + fmt(totalAll) + '  •  Op naam: ' + fmt(totalOp) +
-          '  (' + pctAll + ' %)';
+          data.length +
+          ' L1-1b typegoedkeuringen  •  ' +
+
+          'Geregistreerd: ' +
+          fmt(totalAll) +
+          '  •  ' +
+
+          'Op naam: ' +
+          fmt(totalOp) +
+          '  •  ' +
+
+          'Op naam (7d): ' +
+          fmt(total7d);
+
+        // ---------------------------------------------------------
+        // Tijdstip laatste update
+        // ---------------------------------------------------------
 
         const now = new Date();
-        subtitle.textContent = 'Laatst bijgewerkt: ' + now.toLocaleString('nl-NL');
+
+        subtitle.textContent =
+          'Laatst bijgewerkt: ' +
+          now.toLocaleString('nl-NL');
+
         status.textContent = '✓ Klaar';
+
       } catch (e) {
-        tbody.innerHTML = '<tr><td colspan="6" class="loading">Fout: ' + e.message + '</td></tr>';
-        status.textContent = 'Fout bij laden';
-        subtitle.textContent = 'Kon data niet ophalen';
+
+        tbody.innerHTML =
+          '<tr>' +
+            '<td colspan="6" class="loading">' +
+              'Fout: ' +
+              e.message +
+            '</td>' +
+          '</tr>';
+
+        status.textContent =
+          'Fout bij laden';
+
+        subtitle.textContent =
+          'Kon data niet ophalen';
+
       } finally {
+
         btn.disabled = false;
       }
     }
 
+    // Automatisch laden bij openen van de pagina
     loadData();
+
   </script>
+
 </body>
 </html>
